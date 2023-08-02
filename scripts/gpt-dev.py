@@ -9,6 +9,7 @@ max_iters = 3000
 eval_interval = 300
 device = "cuda" if torch.cuda.is_available() else "cpu"
 eval_iters = 200
+n_embed = 32
 
 with open("../data/shakespeare.txt", "r", encoding="utf-8") as f:
     text = f.read()
@@ -59,10 +60,15 @@ class BiagramLanguageModel(nn.Module):
 
     def __init__(self, vocab_size):
         super().__init__()
-        self.token_embedding_table = nn.Embedding(vocab_size, vocab_size)
+        self.token_embedding_table = nn.Embedding(vocab_size, n_embed)
+        self.position_embedding_table = nn.Embedding(block_size, n_embed)
+        self.lm_head = nn.Linear(n_embed, vocab_size)
 
     def forward(self, idx, targets = None): #B, T, C = Batch, Time, Channel
-        logits = self.token_embedding_table(idx)
+        tok_emb = self.token_embedding_table(idx)
+        pos_emb = self.position_embedding_table(torch.arange(T, device=device))
+        x = tok_emb + pos_emb
+        logits = self.lm_head(x)
         
         if targets is None:
             loss = None
